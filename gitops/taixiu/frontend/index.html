@@ -274,6 +274,47 @@
       100% { transform: translate(1px, -2px) rotate(-1deg) scale(1.05); }
     }
 
+    /* Squeezing Bowl overlay style */
+    .bowl {
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ecf0f1 0%, #bdc3c7 40%, #7f8c8d 80%, #2c3e50 100%);
+      border: 6px solid var(--gold);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.4);
+      cursor: grab;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s ease-out, opacity 0.3s ease;
+      transform: translate(0px, 0px);
+    }
+
+    .bowl:active {
+      cursor: grabbing;
+    }
+
+    .bowl-handle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #f1c40f 0%, #f39c12 60%, #d35400 100%);
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    /* Bowl hidden state (slides away) */
+    .bowl.hidden {
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(220px, -220px) rotate(45deg) !important;
+      transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
     /* Control Panel */
     .bet-controller {
       background: var(--panel-bg);
@@ -484,8 +525,16 @@
             <!-- Dice 3 -->
             <div class="dice" id="dice3"></div>
           </div>
+          <!-- Royal Squeezing Bowl -->
+          <div class="bowl" id="bowl-overlay">
+            <div class="bowl-handle"></div>
+          </div>
         </div>
-        <div id="total-display" style="font-size: 1.4rem; font-weight: 800; color: var(--gold-light); height: 2rem;"></div>
+        
+        <div style="display: flex; align-items: center; gap: 10px; height: 2.5rem;">
+          <div id="total-display" style="font-size: 1.4rem; font-weight: 800; color: var(--gold-light);"></div>
+          <button class="btn-quick" id="btn-open-fast" style="display: none; padding: 4px 12px; font-size: 0.9rem;" onclick="openBowlFast()">Mở Nhanh</button>
+        </div>
       </div>
 
       <!-- Xiu Side -->
@@ -531,6 +580,19 @@
   <script>
     let selectedChoice = null;
     let balance = 1000000;
+    
+    // Squeeze logic variables
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let hasRevealed = false;
+    let pendingData = null;
+
+    const bowl = document.getElementById('bowl-overlay');
+    const btnOpenFast = document.getElementById('btn-open-fast');
+    const totalDisplay = document.getElementById('total-display');
 
     // Dice configurations mapping
     const diceDots = {
@@ -560,7 +622,7 @@
         const dotEl = document.createElement('div');
         if (dotsList.includes(area)) {
           dotEl.className = 'dot';
-          // Red dot for 1st value (or number 1 and 4 in traditional dice)
+          // Red dot for 1 and 4 in traditional dice
           if (value === 1 || (value === 4 && ['a','c','g','i'].includes(area))) {
             dotEl.classList.add('red');
           }
@@ -640,6 +702,104 @@
       }, 4000);
     }
 
+    // Interactive squeeze bowl drag logic
+    function resetBowl() {
+      bowl.classList.remove('hidden');
+      bowl.style.transform = 'translate(0px, 0px)';
+      currentX = 0;
+      currentY = 0;
+      hasRevealed = false;
+      btnOpenFast.style.display = 'none';
+    }
+
+    function hideBowl() {
+      bowl.classList.add('hidden');
+      btnOpenFast.style.display = 'none';
+    }
+
+    bowl.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', dragMove);
+    document.addEventListener('mouseup', dragEnd);
+
+    bowl.addEventListener('touchstart', dragStart, { passive: true });
+    document.addEventListener('touchmove', dragMove, { passive: false });
+    document.addEventListener('touchend', dragEnd);
+
+    function dragStart(e) {
+      if (hasRevealed || !pendingData) return;
+      isDragging = true;
+      
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      startX = clientX - currentX;
+      startY = clientY - currentY;
+      
+      bowl.style.transition = 'none';
+    }
+
+    function dragMove(e) {
+      if (!isDragging) return;
+      if (e.cancelable) e.preventDefault();
+      
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      currentX = clientX - startX;
+      currentY = clientY - startY;
+      
+      bowl.style.transform = `translate(${currentX}px, ${currentY}px)`;
+      
+      // Calculate drag distance
+      const distance = Math.sqrt(currentX * currentX + currentY * currentY);
+      if (distance > 90) {
+        revealResult();
+      }
+    }
+
+    function dragEnd() {
+      if (!isDragging) return;
+      isDragging = false;
+      
+      if (!hasRevealed) {
+        // Return to center if not dragged far enough
+        bowl.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        bowl.style.transform = 'translate(0px, 0px)';
+        currentX = 0;
+        currentY = 0;
+      }
+    }
+
+    function revealResult() {
+      if (hasRevealed) return;
+      hasRevealed = true;
+      isDragging = false;
+      
+      hideBowl();
+      
+      if (pendingData) {
+        const data = pendingData;
+        totalDisplay.innerText = `${data.total} Điểm - ${data.result.toUpperCase()}`;
+        
+        balance = data.balance;
+        updateUI(data.history);
+
+        if (data.win) {
+          showToast('THẮNG LỚN! 🎉', `Chúc mừng bạn đã nhận thêm +${data.betAmount.toLocaleString()} chip!`);
+        } else {
+          showToast('TIẾC QUÁ! 💔', `Bạn đã mất -${data.betAmount.toLocaleString()} chip!`);
+        }
+        
+        pendingData = null;
+        document.getElementById('btn-roll').disabled = false;
+      }
+    }
+
+    function openBowlFast() {
+      if (!pendingData || hasRevealed) return;
+      revealResult();
+    }
+
     async function submitBet() {
       const betAmount = parseInt(document.getElementById('bet-amount').value) || 0;
       
@@ -656,13 +816,15 @@
         return;
       }
 
-      // Disable button during spin
+      // Disable button
       const btnRoll = document.getElementById('btn-roll');
       btnRoll.disabled = true;
       
+      // Cover with bowl and shake dice
+      resetBowl();
       const diceContainer = document.getElementById('dice-container');
       diceContainer.classList.add('rolling');
-      document.getElementById('total-display').innerText = 'Đang lắc...';
+      totalDisplay.innerText = 'Đang lắc...';
 
       try {
         const res = await fetch(`${getBackendUrl()}/api/roll`, {
@@ -671,43 +833,36 @@
           body: JSON.stringify({ betAmount, choice: selectedChoice })
         });
 
-        // Delay 1 second to make animation look real
         setTimeout(async () => {
           diceContainer.classList.remove('rolling');
           
           if (res.ok) {
             const data = await res.json();
             
-            // Render result dice
+            // Set values behind the bowl
             renderDice(document.getElementById('dice1'), data.dice[0]);
             renderDice(document.getElementById('dice2'), data.dice[1]);
             renderDice(document.getElementById('dice3'), data.dice[2]);
             
-            document.getElementById('total-display').innerText = `${data.total} Điểm - ${data.result.toUpperCase()}`;
-            
-            balance = data.balance;
-            updateUI(data.history);
-
-            if (data.win) {
-              showToast('THẮNG LỚN! 🎉', `Chúc mừng bạn đã nhận thêm +${betAmount.toLocaleString()} chip!`);
-            } else {
-              showToast('TIẾC QUÁ! 💔', `Bạn đã mất -${betAmount.toLocaleString()} chip!`);
-            }
+            // Wait for user to drag/squeeze the bowl to reveal
+            pendingData = { ...data, betAmount };
+            totalDisplay.innerText = 'Kéo cái bát để nặn kết quả!';
+            btnOpenFast.style.display = 'inline-block';
           } else {
             const err = await res.json();
             showToast('Lỗi từ hệ thống', err.error || 'Giao dịch bị từ chối', true);
-            document.getElementById('total-display').innerText = '';
+            totalDisplay.innerText = '';
+            btnRoll.disabled = false;
           }
-          btnRoll.disabled = false;
-        }, 1000);
+        }, 1200);
 
       } catch (err) {
         setTimeout(() => {
           diceContainer.classList.remove('rolling');
-          document.getElementById('total-display').innerText = '';
+          totalDisplay.innerText = '';
           btnRoll.disabled = false;
           showToast('Lỗi mạng', 'Không thể kết nối đến Backend API', true);
-        }, 1000);
+        }, 1200);
       }
     }
 
