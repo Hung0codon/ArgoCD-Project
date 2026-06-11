@@ -16,6 +16,12 @@ app.use((req, res, next) => {
     const key = `method="${method}",path="${path}",status="${status}"`;
     requestCounts[key] = (requestCounts[key] || 0) + 1;
   });
+  
+  // Inject 30% HTTP 500 error rate for testing Canary rollback
+  if (req.path === '/api/state' && Math.random() < 0.3) {
+    return res.status(500).json({ error: 'Simulated Internal Server Error' });
+  }
+  
   next();
 });
 
