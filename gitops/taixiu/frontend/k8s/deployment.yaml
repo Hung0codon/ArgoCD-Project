@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taixiu-frontend
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taixiu-frontend
+  template:
+    metadata:
+      labels:
+        app: taixiu-frontend
+    spec:
+      containers:
+      - name: taixiu-frontend
+        image: taixiu-frontend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80

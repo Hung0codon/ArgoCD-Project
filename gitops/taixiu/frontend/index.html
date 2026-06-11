@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài Xỉu Premium - GitOps Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #f39c12;
+      --gold-light: #f1c40f;
+      --gold-dark: #d35400;
+      --bg: #0f0c1b;
+      --panel-bg: rgba(30, 25, 50, 0.7);
+      --red: #e74c3c;
+      --blue: #3498db;
+      --text: #ffffff;
+      --text-muted: #a0a0c0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #231942 0%, var(--bg) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    header h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      background: linear-gradient(to right, #ffe066, var(--gold), #ff8000);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 30px rgba(243, 156, 18, 0.2);
+      letter-spacing: 2px;
+      margin-bottom: 5px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      letter-spacing: 1px;
+    }
+
+    /* Info Board */
+    .dashboard {
+      background: var(--panel-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .info-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .info-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--gold-light);
+      text-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+    }
+
+    /* Game Board */
+    .game-board {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1.2fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 768px) {
+      .game-board {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .bet-panel {
+      background: var(--panel-bg);
+      border: 2px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .bet-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .bet-panel:hover::before {
+      opacity: 1;
+    }
+
+    .bet-panel.tai {
+      border-color: rgba(231, 76, 60, 0.3);
+    }
+
+    .bet-panel.tai:hover {
+      box-shadow: 0 15px 35px rgba(231, 76, 60, 0.25);
+      transform: translateY(-5px);
+      border-color: var(--red);
+    }
+
+    .bet-panel.tai.selected {
+      background: rgba(231, 76, 60, 0.2);
+      border-color: var(--red);
+      box-shadow: 0 0 30px rgba(231, 76, 60, 0.4);
+    }
+
+    .bet-panel.xiu {
+      border-color: rgba(52, 152, 219, 0.3);
+    }
+
+    .bet-panel.xiu:hover {
+      box-shadow: 0 15px 35px rgba(52, 152, 219, 0.25);
+      transform: translateY(-5px);
+      border-color: var(--blue);
+    }
+
+    .bet-panel.xiu.selected {
+      background: rgba(52, 152, 219, 0.2);
+      border-color: var(--blue);
+      box-shadow: 0 0 30px rgba(52, 152, 219, 0.4);
+    }
+
+    .bet-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+
+    .tai .bet-title {
+      color: var(--red);
+      text-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+    }
+
+    .xiu .bet-title {
+      color: var(--blue);
+      text-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
+    }
+
+    .bet-desc {
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+
+    /* Dice/Plate Area */
+    .dice-area {
+      background: rgba(15, 10, 30, 0.9);
+      border: 3px solid var(--gold);
+      border-radius: 50%;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.8), 0 0 40px rgba(243, 156, 18, 0.2);
+    }
+
+    .dice-wrapper {
+      display: flex;
+      gap: 12px;
+      z-index: 2;
+    }
+
+    /* Dice design */
+    .dice {
+      width: 42px;
+      height: 42px;
+      background: #ffffff;
+      border-radius: 8px;
+      display: grid;
+      grid-template-areas:
+        "a b c"
+        "d e f"
+        "g h i";
+      padding: 6px;
+      box-shadow: inset 0 -4px 6px rgba(0,0,0,0.2), 0 4px 10px rgba(0,0,0,0.5);
+      position: relative;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: #333333;
+      border-radius: 50%;
+      justify-self: center;
+      align-self: center;
+    }
+
+    .dot.red {
+      background: var(--red);
+      width: 10px;
+      height: 10px;
+    }
+
+    /* Rolling animation class */
+    .rolling {
+      animation: shake 0.6s infinite alternate;
+      filter: blur(1.5px);
+    }
+
+    @keyframes shake {
+      0% { transform: translate(2px, 1px) rotate(0deg) scale(0.95); }
+      10% { transform: translate(-1px, -2px) rotate(-1deg); }
+      20% { transform: translate(-3px, 0px) rotate(1deg); }
+      30% { transform: translate(0px, 2px) rotate(0deg); }
+      40% { transform: translate(1px, -1px) rotate(1deg); }
+      50% { transform: translate(-1px, 2px) rotate(-1deg); }
+      60% { transform: translate(-3px, 1px) rotate(0deg); }
+      70% { transform: translate(2px, 1px) rotate(-1deg); }
+      80% { transform: translate(-1px, -1px) rotate(1deg); }
+      90% { transform: translate(2px, 2px) rotate(0deg); }
+      100% { transform: translate(1px, -2px) rotate(-1deg) scale(1.05); }
+    }
+
+    /* Control Panel */
+    .bet-controller {
+      background: var(--panel-bg);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .bet-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .bet-input-label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .bet-input {
+      flex-grow: 1;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 15px 20px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--gold-light);
+      outline: none;
+      text-align: right;
+    }
+
+    .bet-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(243, 156, 18, 0.2);
+    }
+
+    .quick-bet-buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .btn-quick {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 0;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-quick:hover {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+      color: #000000;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .btn-action:hover {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(243, 156, 18, 0.6);
+      background: linear-gradient(135deg, #fff 0%, var(--gold-light) 100%);
+    }
+
+    .btn-action:active {
+      transform: scale(0.98);
+    }
+
+    .btn-action:disabled {
+      background: #444;
+      color: #888;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    /* History Board */
+    .history-panel {
+      background: var(--panel-bg);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .history-title {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .history-list {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .history-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    .history-badge.tai {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .history-badge.xiu {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(20, 15, 35, 0.95);
+      border-left: 5px solid var(--gold);
+      padding: 15px 25px;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 1000;
+      transform: translateX(120%);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast-title {
+      font-weight: 800;
+      color: var(--gold-light);
+      margin-bottom: 3px;
+    }
+
+    .toast-desc {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>TÀI XỈU PREMIUM</h1>
+      <p>HỆ THỐNG GITOPS AUTOMATED DEPLOYMENT</p>
+    </header>
+
+    <!-- Dashboard -->
+    <div class="dashboard">
+      <div class="info-item">
+        <span class="info-label">Số Dư Chip</span>
+        <span class="info-value" id="balance-display">1,000,000</span>
+      </div>
+      <div class="info-item" style="text-align: right;">
+        <span class="info-label">Cược Hiện Tại</span>
+        <span class="info-value" id="current-bet-display" style="color: #fff;">0</span>
+      </div>
+    </div>
+
+    <!-- Main Game Board -->
+    <div class="game-board">
+      <!-- Tai Side -->
+      <div class="bet-panel tai" onclick="selectChoice('tai')">
+        <span class="bet-title">TÀI</span>
+        <span class="bet-desc">11 - 17 Điểm</span>
+      </div>
+
+      <!-- Center Dice Plate -->
+      <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px;">
+        <div class="dice-area">
+          <div class="dice-wrapper" id="dice-container">
+            <!-- Dice 1 -->
+            <div class="dice" id="dice1"></div>
+            <!-- Dice 2 -->
+            <div class="dice" id="dice2"></div>
+            <!-- Dice 3 -->
+            <div class="dice" id="dice3"></div>
+          </div>
+        </div>
+        <div id="total-display" style="font-size: 1.4rem; font-weight: 800; color: var(--gold-light); height: 2rem;"></div>
+      </div>
+
+      <!-- Xiu Side -->
+      <div class="bet-panel xiu" onclick="selectChoice('xiu')">
+        <span class="bet-title">XỈU</span>
+        <span class="bet-desc">4 - 10 Điểm</span>
+      </div>
+    </div>
+
+    <!-- Betting Controls -->
+    <div class="bet-controller">
+      <div class="bet-input-wrapper">
+        <span class="bet-input-label">Số chip đặt cược:</span>
+        <input type="number" class="bet-input" id="bet-amount" value="50000" min="1000">
+      </div>
+
+      <div class="quick-bet-buttons">
+        <button class="btn-quick" onclick="addBet(10000)">+10K</button>
+        <button class="btn-quick" onclick="addBet(50000)">+50K</button>
+        <button class="btn-quick" onclick="addBet(100000)">+100K</button>
+        <button class="btn-quick" onclick="addBet(500000)">+500K</button>
+        <button class="btn-quick" onclick="allInBet()">All In</button>
+      </div>
+
+      <button class="btn-action" id="btn-roll" onclick="submitBet()">ĐẶT CƯỢC & QUAY</button>
+    </div>
+
+    <!-- History Panel -->
+    <div class="history-panel">
+      <div class="history-title">Lịch sử cầu mới nhất</div>
+      <div class="history-list" id="history-container">
+        <!-- Badges will go here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast-notif">
+    <div class="toast-title" id="toast-title">Thông báo</div>
+    <div class="toast-desc" id="toast-desc">Nội dung thông báo</div>
+  </div>
+
+  <script>
+    let selectedChoice = null;
+    let balance = 1000000;
+
+    // Dice configurations mapping
+    const diceDots = {
+      1: ['e'],
+      2: ['a', 'i'],
+      3: ['a', 'e', 'i'],
+      4: ['a', 'c', 'g', 'i'],
+      5: ['a', 'c', 'e', 'g', 'i'],
+      6: ['a', 'c', 'd', 'f', 'g', 'i']
+    };
+
+    const getBackendUrl = () => {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:5000';
+      }
+      return `http://${hostname}:30050`;
+    };
+
+    // Render dice face
+    function renderDice(diceEl, value) {
+      diceEl.innerHTML = '';
+      const dotsList = diceDots[value] || [];
+      const areas = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+      
+      areas.forEach(area => {
+        const dotEl = document.createElement('div');
+        if (dotsList.includes(area)) {
+          dotEl.className = 'dot';
+          // Red dot for 1st value (or number 1 and 4 in traditional dice)
+          if (value === 1 || (value === 4 && ['a','c','g','i'].includes(area))) {
+            dotEl.classList.add('red');
+          }
+        }
+        dotEl.style.gridArea = area;
+        diceEl.appendChild(dotEl);
+      });
+    }
+
+    // Set initial dice
+    renderDice(document.getElementById('dice1'), 1);
+    renderDice(document.getElementById('dice2'), 2);
+    renderDice(document.getElementById('dice3'), 3);
+
+    // Fetch initial state
+    async function loadState() {
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/state`);
+        if (res.ok) {
+          const data = await res.json();
+          balance = data.balance;
+          updateUI(data.history);
+        }
+      } catch (err) {
+        showToast('Kết nối thất bại', 'Không thể kết nối đến Backend Service API', true);
+      }
+    }
+
+    function updateUI(history) {
+      document.getElementById('balance-display').innerText = balance.toLocaleString();
+      
+      const historyContainer = document.getElementById('history-container');
+      historyContainer.innerHTML = '';
+      
+      if (history && history.length > 0) {
+        history.forEach(item => {
+          const badge = document.createElement('div');
+          badge.className = `history-badge ${item.result}`;
+          badge.innerText = item.result === 'tai' ? 'T' : 'X';
+          badge.title = `Điểm: ${item.total} (${item.dice.join(', ')})`;
+          historyContainer.appendChild(badge);
+        });
+      }
+    }
+
+    function selectChoice(choice) {
+      selectedChoice = choice;
+      document.querySelectorAll('.bet-panel').forEach(p => p.classList.remove('selected'));
+      document.querySelector(`.bet-panel.${choice}`).classList.add('selected');
+      document.getElementById('current-bet-display').innerText = choice.toUpperCase();
+    }
+
+    function addBet(amount) {
+      const input = document.getElementById('bet-amount');
+      let val = parseInt(input.value) || 0;
+      val += amount;
+      if (val > balance) val = balance;
+      input.value = val;
+    }
+
+    function allInBet() {
+      document.getElementById('bet-amount').value = balance;
+    }
+
+    function showToast(title, desc, isError = false) {
+      const toast = document.getElementById('toast-notif');
+      const titleEl = document.getElementById('toast-title');
+      const descEl = document.getElementById('toast-desc');
+      
+      titleEl.innerText = title;
+      descEl.innerText = desc;
+      toast.style.borderColor = isError ? 'var(--red)' : 'var(--gold)';
+      
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 4000);
+    }
+
+    async function submitBet() {
+      const betAmount = parseInt(document.getElementById('bet-amount').value) || 0;
+      
+      if (!selectedChoice) {
+        showToast('Chưa chọn cửa', 'Vui lòng click chọn cửa TÀI hoặc XỈU trước!', true);
+        return;
+      }
+      if (betAmount <= 0) {
+        showToast('Số tiền không hợp lệ', 'Số tiền cược phải lớn hơn 0', true);
+        return;
+      }
+      if (betAmount > balance) {
+        showToast('Không đủ chip', 'Vui lòng cược ít hơn số chip đang có', true);
+        return;
+      }
+
+      // Disable button during spin
+      const btnRoll = document.getElementById('btn-roll');
+      btnRoll.disabled = true;
+      
+      const diceContainer = document.getElementById('dice-container');
+      diceContainer.classList.add('rolling');
+      document.getElementById('total-display').innerText = 'Đang lắc...';
+
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/roll`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ betAmount, choice: selectedChoice })
+        });
+
+        // Delay 1 second to make animation look real
+        setTimeout(async () => {
+          diceContainer.classList.remove('rolling');
+          
+          if (res.ok) {
+            const data = await res.json();
+            
+            // Render result dice
+            renderDice(document.getElementById('dice1'), data.dice[0]);
+            renderDice(document.getElementById('dice2'), data.dice[1]);
+            renderDice(document.getElementById('dice3'), data.dice[2]);
+            
+            document.getElementById('total-display').innerText = `${data.total} Điểm - ${data.result.toUpperCase()}`;
+            
+            balance = data.balance;
+            updateUI(data.history);
+
+            if (data.win) {
+              showToast('THẮNG LỚN! 🎉', `Chúc mừng bạn đã nhận thêm +${betAmount.toLocaleString()} chip!`);
+            } else {
+              showToast('TIẾC QUÁ! 💔', `Bạn đã mất -${betAmount.toLocaleString()} chip!`);
+            }
+          } else {
+            const err = await res.json();
+            showToast('Lỗi từ hệ thống', err.error || 'Giao dịch bị từ chối', true);
+            document.getElementById('total-display').innerText = '';
+          }
+          btnRoll.disabled = false;
+        }, 1000);
+
+      } catch (err) {
+        setTimeout(() => {
+          diceContainer.classList.remove('rolling');
+          document.getElementById('total-display').innerText = '';
+          btnRoll.disabled = false;
+          showToast('Lỗi mạng', 'Không thể kết nối đến Backend API', true);
+        }, 1000);
+      }
+    }
+
+    // Load initial state
+    window.onload = loadState;
+  </script>
+</body>
+</html>

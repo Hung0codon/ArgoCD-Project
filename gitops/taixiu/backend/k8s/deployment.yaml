@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taixiu-backend
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taixiu-backend
+  template:
+    metadata:
+      labels:
+        app: taixiu-backend
+    spec:
+      containers:
+      - name: taixiu-backend
+        image: taixiu-backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
