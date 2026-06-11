@@ -498,7 +498,10 @@
     <div class="dashboard">
       <div class="info-item">
         <span class="info-label">Số Dư Chip</span>
-        <span class="info-value" id="balance-display">1,000,000</span>
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <span class="info-value" id="balance-display">1,000,000</span>
+          <button class="btn-quick" style="padding: 5px 15px; border-color: var(--gold); color: var(--gold-light); font-weight: 800; font-size: 0.9rem;" onclick="depositMoney()">Nạp +500K</button>
+        </div>
       </div>
       <div class="info-item" style="text-align: right;">
         <span class="info-label">Cược Hiện Tại</span>
@@ -863,6 +866,25 @@
           btnRoll.disabled = false;
           showToast('Lỗi mạng', 'Không thể kết nối đến Backend API', true);
         }, 1200);
+      }
+    }
+
+    async function depositMoney() {
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/deposit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          balance = data.balance;
+          document.getElementById('balance-display').innerText = balance.toLocaleString();
+          showToast('Nạp tiền thành công! 💰', 'Tài khoản của bạn đã được cộng thêm +500,000 chip.');
+        } else {
+          showToast('Lỗi nạp tiền', 'Giao dịch không thành công', true);
+        }
+      } catch (err) {
+        showToast('Lỗi mạng', 'Không thể kết nối đến Backend API để nạp tiền', true);
       }
     }
 

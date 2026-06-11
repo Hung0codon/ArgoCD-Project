@@ -67,6 +67,11 @@ app.post('/api/roll', (req, res) => {
   });
 });
 
+app.post('/api/deposit', (req, res) => {
+  balance += 500000;
+  res.json({ balance });
+});
+
 app.post('/api/reset', (req, res) => {
   balance = 1000000;
   history = [];
