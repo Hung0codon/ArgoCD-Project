@@ -5,6 +5,31 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Custom Prometheus metrics collection
+let requestCounts = {};
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    if (req.path === '/metrics') return;
+    const path = req.path;
+    const method = req.method;
+    const status = res.statusCode;
+    const key = `method="${method}",path="${path}",status="${status}"`;
+    requestCounts[key] = (requestCounts[key] || 0) + 1;
+  });
+  next();
+});
+
+app.get('/metrics', (req, res) => {
+  let metricsStr = '';
+  metricsStr += '# HELP http_requests_total Total number of HTTP requests\n';
+  metricsStr += '# TYPE http_requests_total counter\n';
+  for (const [key, count] of Object.entries(requestCounts)) {
+    metricsStr += `http_requests_total{${key}} ${count}\n`;
+  }
+  res.set('Content-Type', 'text/plain');
+  res.send(metricsStr);
+});
+
 let balance = 1000000; // 1,000,000 chip mặc định
 let history = [];
 
