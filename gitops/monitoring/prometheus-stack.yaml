@@ -160,9 +160,9 @@ data:
   alertmanager.yml: |
     global:
       smtp_smarthost: 'smtp.gmail.com:587'
-      smtp_from: 'your-sender-email@gmail.com'
-      smtp_auth_username: 'your-sender-email@gmail.com'
-      smtp_auth_password: 'your-gmail-app-password'
+      smtp_from: 'quochungisme@gmail.com'
+      smtp_auth_username: 'quochungisme@gmail.com'
+      smtp_auth_password: 'cmpi ficz mqjv sysh'
       smtp_require_tls: true
     route:
       group_by: ['alertname']
@@ -173,7 +173,7 @@ data:
     receivers:
     - name: 'personal-email'
       email_configs:
-      - to: 'your-personal-receiver-email@gmail.com'
+      - to: 'quochungisme@gmail.com'
         send_resolved: true
         headers:
           subject: '[CẢNH BÁO HỆ THỐNG] SLO Vi Phạm: {{ .CommonAnnotations.summary }}'
