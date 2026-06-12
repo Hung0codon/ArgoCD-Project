@@ -708,18 +708,45 @@ Cấu hình giao thức SMTP gửi thư đến email cá nhân của bạn. Kỹ
   * Kích hoạt tự động prune (xóa sạch ứng dụng `monitoring` cũ và tạo mới ứng dụng `prometheus-stack` trên ArgoCD).
 
 ### 4. Triển khai Grafana và Tự Động Cấu Hình Dashboard (Auto-provisioning)
-* **Mục tiêu:** Cung cấp giao diện biểu đồ trực quan, sinh động để theo dõi thời gian thực lưu lượng request (RPS) và tỷ lệ lỗi (Error Rate / SLO).
-* **Chi tiết thực hiện:**
-  * Thêm tài nguyên `ConfigMap` chứa data source Prometheus mặc định.
-  * Thiết lập cấu hình auto-provisioning dashboard bằng ConfigMap: `grafana-dashboards-provider` và `grafana-dashboard-taixiu` (chứa JSON định nghĩa sẵn của dashboard `TaiXiu Backend Monitor`).
-  * Khai báo Deployment chạy image `grafana/grafana:10.2.0` với password mặc định là `admin`, thực hiện mount các volume từ ConfigMap trên.
-  * Khai báo Service NodePort cổng `30090` để có thể truy cập trực tiếp từ máy trạm Windows.
+* **Mục tiêu:** Tích hợp trực tiếp Grafana vào GitOps stack để có giao diện biểu đồ theo dõi trực quan chỉ số SLO và lưu lượng tải của game Tài Xỉu ngay sau khi đồng bộ mà không cần cấu hình bằng tay.
+* **Chi tiết thực hiện & Tập tin cấu hình:**
+  * **File cấu hình:** Bổ sung trực tiếp các tài nguyên Grafana vào cuối file `gitops/monitoring/prometheus-stack.yaml`.
+  * **ConfigMap nguồn dữ liệu (`grafana-datasources`):** Cấu hình tự động kết nối (provisioning) Prometheus làm Default Data Source qua URL nội bộ cụm: `http://prometheus-service.monitoring.svc.cluster.local:9090`.
+  * **ConfigMap nhà cung cấp Dashboard (`grafana-dashboards-provider`):** Cấu hình Grafana tự động quét và load các file JSON dashboard từ thư mục `/var/lib/grafana/dashboards`.
+  * **ConfigMap dữ liệu Dashboard (`grafana-dashboard-taixiu`):** Chứa file JSON model định nghĩa dashboard tên là `TaiXiu Backend Monitor` gồm 2 panels:
+    * *Panel 1: TaiXiu Backend Request Rate (RPS)* - Sử dụng query: `sum(rate(http_requests_total{app="taixiu-backend"}[2m]))`.
+    * *Panel 2: TaiXiu Backend HTTP Error Rate (SLO)* - Sử dụng query: `(sum(rate(http_requests_total{app="taixiu-backend", status=~"5.."}[2m])) or vector(0)) / (sum(rate(http_requests_total{app="taixiu-backend"}[2m])) or vector(1))`.
+  * **Deployment Grafana (`grafana-deployment`):**
+    * Image: `grafana/grafana:10.2.0`.
+    * Biến môi trường cấu hình mật khẩu: `GF_SECURITY_ADMIN_PASSWORD` = `admin` (Tài khoản mặc định: `admin` / `admin`).
+    * Mount volume `datasource-volume` vào thư mục `/etc/grafana/provisioning/datasources`.
+    * Mount volume `dashboard-provider-volume` vào thư mục `/etc/grafana/provisioning/dashboards`.
+    * Mount volume `dashboard-data-volume` vào thư mục `/var/lib/grafana/dashboards`.
+  * **Service Grafana (`grafana-service`):** Expose ra ngoài cụm dạng `NodePort` cổng `30090`.
+  * **Các cách truy cập kiểm tra:**
+    * *Cách 1 (Port-Forward):* Chạy lệnh `kubectl port-forward -n monitoring svc/grafana-service 3000:3000` rồi truy cập `http://localhost:3000`.
+    * *Cách 2 (Minikube Service):* Chạy lệnh `minikube service grafana-service -n monitoring` để minikube tự tạo tunnel và mở trình duyệt.
 
 ### 5. Cài đặt Argo Rollouts CLI và Kích hoạt Dashboard Quản lý Trực quan
-* **Mục tiêu:** Cho phép kỹ sư DevOps quản trị và điều phối các đợt phát hành Canary Rollout thông qua giao diện chuyên dụng của Argo Rollouts.
-* **Chi tiết thực hiện:**
-  * Tải và cài đặt plugin `kubectl-argo-rollouts.exe` (v1.9.0) vào thư mục `PATH` hệ thống trên máy Windows.
-  * Chạy lệnh `kubectl argo rollouts dashboard` để khởi động máy chủ cục bộ và tự động mở giao diện web giám sát tại cổng `3100`.
+* **Mục tiêu:** Cài đặt plugin dòng lệnh chính thức để có thể theo dõi và tương tác trực quan (Abort, Promote, Retry) các chu kỳ Canary Rollout của backend Tài Xỉu.
+* **Chi tiết thực hiện & Câu lệnh vận hành:**
+  * **Tải plugin về máy Windows:** Sử dụng công cụ `curl.exe` tải trực tiếp phiên bản ổn định mới nhất `v1.9.0` từ Github Releases của dự án Argo:
+    ```powershell
+    curl.exe -L "https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-windows-amd64" -o "$env:LOCALAPPDATA\Microsoft\WindowsApps\kubectl-argo-rollouts.exe"
+    ```
+  * **Đường dẫn cài đặt:** Lưu trực tiếp file thực thi thành `kubectl-argo-rollouts.exe` đặt tại thư mục `$env:LOCALAPPDATA\Microsoft\WindowsApps` (đây là thư mục mặc định có sẵn trong biến môi trường `PATH` của mọi người dùng Windows 10/11, giúp plugin có thể thực thi ngay lập tức mà không cần phân quyền hay reset máy tính).
+  * **Xác thực cài đặt:**
+    ```powershell
+    kubectl argo rollouts version
+    ```
+    *Đầu ra mong muốn:* Trả về phiên bản `v1.9.0` cùng thông tin build chi tiết.
+  * **Khởi chạy giao diện quản lý trực quan (Rollouts Dashboard):**
+    ```powershell
+    kubectl argo rollouts dashboard
+    ```
+    *Lưu ý vận hành:* Lệnh trên sẽ tự tạo một local web server lắng nghe ở cổng `3100` và tự động mở trình duyệt truy cập vào địa chỉ `http://localhost:3100`. Tại giao diện này, toàn bộ sơ đồ các bước Canary (20% traffic, AnalysisRun đang chạy/kết quả đo đạc) sẽ được trực quan hóa sinh động.
+
+---
 
 ---
 
