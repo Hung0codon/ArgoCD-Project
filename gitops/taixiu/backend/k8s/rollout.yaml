@@ -16,6 +16,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "5000"
         prometheus.io/path: "/metrics"
+        test-version: "success-2"
     spec:
       containers:
       - name: taixiu-backend
