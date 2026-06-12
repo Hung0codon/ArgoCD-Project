@@ -659,6 +659,14 @@ Cấu hình giao thức SMTP gửi thư đến email cá nhân của bạn. Kỹ
        kubectl get app taixiu-backend -n argocd -o jsonpath="{.status.health.status}"
        # Trả về: Degraded (Đúng thiết kế khi rollout bị abort và rollback)
        ```
+    10. Khôi phục trạng thái Healthy trên ArgoCD bằng Git Revert:
+        Để khôi phục giao diện ArgoCD về trạng thái `Healthy` (màu xanh), ta chạy lệnh revert commit deploy v2 để đưa cấu hình image trở lại bản `latest` ổn định:
+        ```bash
+        git revert --no-edit d191be6
+        git push origin main
+        ```
+    11. Xác thực kết quả phục hồi:
+        Sau khi push revert commit, ArgoCD tự động sync. Argo Rollouts nhận diện image mới trùng khớp với ReplicaSet cũ đang chạy ổn định, kích hoạt cơ chế `SkipSteps` và khôi phục trạng thái ứng dụng trên ArgoCD từ `Degraded` về `Healthy` màu xanh chỉ trong vòng 1 giây.
 
 #### 2. Tại sao lại có bước này?
 * Để **kiểm thử hộp đen đầu-cuối (End-to-End Blackbox Testing)**. Một hệ thống tự động hóa tự phục hồi (Self-healing) tích hợp giám sát và cảnh báo chỉ thực sự tin cậy khi được trải qua quá trình giả lập lỗi (Fault Injection) thực tế, nhằm kiểm chứng các bánh răng logic giữa Argo Rollouts, Prometheus, Alertmanager và Gmail hoạt động đồng bộ, ăn khớp với nhau.
