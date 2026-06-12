@@ -681,6 +681,34 @@ Cấu hình giao thức SMTP gửi thư đến email cá nhân của bạn. Kỹ
 
 ---
 
+## 🔄 NHẬT KÝ ĐIỀU CHỈNH & TỐI ƯU HÓA KIẾN TRÚC GITOPS (CẬP NHẬT MỚI NHẤT)
+
+Để đảm bảo hệ thống đồng bộ 100% với cấu trúc chuẩn và dễ dàng quản lý trực quan trên giao diện ArgoCD, các điều chỉnh cấu trúc sau đã được thực hiện và cấu hình thành công:
+
+### 1. Đồng bộ hóa bộ cài đặt hệ thống Argo Rollouts dưới dạng GitOps Application
+* **Mục tiêu:** Hiển thị trực quan toàn bộ sơ đồ tài nguyên của bộ điều khiển `argo-rollouts` trực tiếp trên giao diện ArgoCD.
+* **Chi tiết thực hiện:**
+  * Tải file cài đặt chính thức của Argo Rollouts Controller v1.9.0 về repository tại: `gitops/argo-rollouts/install.yaml`.
+  * Khai báo Application quản lý trên ArgoCD: `gitops/argocd/apps/argo-rollouts.yaml`.
+  * Đồng bộ qua ArgoCD để vẽ cấu trúc đầy đủ của Argo Rollouts (CRDs, Controller Deployment, Dashboard Service, ClusterRole, v.v.).
+
+### 2. Sáp nhập ứng dụng Backend Canary và Stable thành một Application duy nhất (`taixiu-backend`)
+* **Mục tiêu:** Đưa tài nguyên `Rollout` thay thế trực tiếp cho `Deployment` của backend chính để quản lý vòng đời phát triển tập trung, loại bỏ sự cồng kềnh của app rollout phân tách.
+* **Chi tiết thực hiện:**
+  * Di chuyển cấu hình `rollout.yaml` và `analysis-template.yaml` vào thư mục ứng dụng chính: `gitops/taixiu/backend/k8s/`.
+  * Sửa nhãn lọc (selector labels) của `AnalysisTemplate` và Alert Rules trong Prometheus sang `app="taixiu-backend"`.
+  * Xóa bỏ hoàn toàn ứng dụng phân tách `taixiu-backend-rollout` trên cả GitOps và ArgoCD.
+  * Cấu hình lại bộ tạo tải nội bộ (`traffic-generator` pod) để gửi request trực tiếp đến service chính: `http://taixiu-backend:5000/api/state`.
+
+### 3. Đổi tên ứng dụng Giám sát thành `prometheus-stack`
+* **Mục tiêu:** Đồng bộ tên hiển thị trên ArgoCD thành `prometheus-stack` để đồng bộ và dễ nhận diện.
+* **Chi tiết thực hiện:**
+  * Đổi tên file ứng dụng: `gitops/argocd/apps/monitoring.yaml` -> `gitops/argocd/apps/prometheus-stack.yaml`.
+  * Cập nhật metadata name bên trong ứng dụng thành `prometheus-stack`.
+  * Kích hoạt tự động prune (xóa sạch ứng dụng `monitoring` cũ và tạo mới ứng dụng `prometheus-stack` trên ArgoCD).
+
+---
+
 ## 🏆 TỔNG KẾT NGHIỆM THU THỬ THÁCH "SHIP SMARTLY"
 
 Dưới đây là bảng tổng hợp đối chiếu kết quả thực tế với 4 tiêu chí ĐẠT của thử thách, đóng vai trò là bằng chứng kỹ thuật hoàn hảo cho việc triển khai thành công:
