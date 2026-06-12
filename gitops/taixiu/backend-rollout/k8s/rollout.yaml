@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: taixiu-backend-rollout
-        image: taixiu-backend:latest
+        image: taixiu-backend:v2
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
