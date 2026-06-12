@@ -93,13 +93,13 @@ data:
     - name: taixiu-alerts
       rules:
       - alert: TaiXiuSloViolated
-        expr: ((sum(rate(http_requests_total{status=~"5..", app="taixiu-backend-rollout"}[2m])) or vector(0)) / (sum(rate(http_requests_total{app="taixiu-backend-rollout"}[2m])) or vector(1))) >= 0.05
+        expr: ((sum(rate(http_requests_total{status=~"5..", app="taixiu-backend"}[2m])) or vector(0)) / (sum(rate(http_requests_total{app="taixiu-backend"}[2m])) or vector(1))) >= 0.05
         for: 0s
         labels:
           severity: critical
         annotations:
-          summary: "SLO bị vi phạm trên Backend Rollout API"
-          description: "Tỷ lệ lỗi HTTP 5xx trên rollout đã vượt quá 5% (Hiện tại: {{ $value }}) trong 2 phút qua."
+          summary: "SLO bị vi phạm trên Backend API"
+          description: "Tỷ lệ lỗi HTTP 5xx trên backend đã vượt quá 5% (Hiện tại: {{ $value }}) trong 2 phút qua."
 
 ---
 apiVersion: apps/v1

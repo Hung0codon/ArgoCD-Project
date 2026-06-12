@@ -1,5 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: taixiu-backend
   namespace: demo
@@ -23,3 +23,14 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
+  strategy:
+    canary:
+      steps:
+      - setWeight: 20
+      - pause: { duration: 10s }
+      - analysis:
+          templates:
+          - templateName: taixiu-backend-success-rate
+      - setWeight: 50
+      - pause: { duration: 10s }
+      - setWeight: 100
