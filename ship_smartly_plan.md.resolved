@@ -56,7 +56,6 @@ flowchart TD
 | **`prometheus-stack`** | `monitoring` | `gitops/monitoring/` | **Monitoring Stack (Giám sát & Cảnh báo):** Triển khai Prometheus Server, Alertmanager (gửi email SMTP cảnh báo SLO) và Grafana (dashboard tự động nạp). |
 | **`taixiu-backend`** | `demo` | `gitops/taixiu/backend/k8s/` | **Game Backend Service:** Chạy code Node.js xử lý logic game dưới dạng Rollout, tích hợp sẵn AnalysisTemplate để tự động phân tích độ ổn định. |
 | **`taixiu-frontend`** | `demo` | `gitops/taixiu/frontend/k8s/` | **Game Frontend Service:** Giao diện người chơi của game Tài Xỉu Premium. |
-| **`web`** | `demo` | `gitops/web/` | **Demo Web Service:** Ứng dụng Nginx từ bài Lab cơ bản phục vụ việc làm quen và kiểm thử ban đầu. |
 
 ---
 
@@ -260,7 +259,7 @@ Dưới đây là tiến độ thực hiện thực tế và các câu lệnh đ
 * **💡 Bài học 4: Sự khác biệt về Load Balancing của port-forward so với Cluster Service:**
   * *Vấn đề:* Khi cấu hình `kubectl port-forward svc/taixiu-backend` từ máy host để chạy script traffic, ta nhận thấy endpoint `/metrics` chỉ ghi nhận toàn bộ request thành công (200 OK) và 0 request lỗi (500), mặc dù pod Canary v2 đã chạy và có mã nguồn gây lỗi.
   * *Nguyên nhân:* Lệnh `kubectl port-forward` chọn ngẫu nhiên một pod duy nhất khớp với selector của Service khi khởi tạo kết nối, và ghim cố định toàn bộ các request sau đó qua kết nối đó. Điều này vô hiệu hóa cơ chế load balancing của Kubernetes Service, làm pod v2 không nhận được bất kỳ request nào từ script máy host.
-  * *Giải pháp:* Thực hiện chạy script traffic generator trực tiếp bên trong một container đang chạy trong cụm (như container `web` của namespace `demo`) sử dụng lệnh `kubectl exec` chạy vòng lặp `curl http://taixiu-backend:5000/api/state`. Khi gọi qua DNS nội bộ của cụm, kube-proxy sẽ thực hiện cân bằng tải thực tế, phân phối đều traffic đến cả v1 (80%) và v2 (20%).
+  * *Giải pháp:* Khởi tạo một Pod độc lập làm nhiệm vụ tạo tải (`traffic-generator`) chạy lệnh `curl` liên tục gọi tới DNS nội bộ của cụm `http://taixiu-backend:5000/api/state`. Khi gọi qua DNS nội bộ, kube-proxy sẽ thực hiện cân bằng tải thực tế, phân phối đều traffic đến cả v1 (80%) và v2 (20%).
 
 * **🐞 Bài học 5: Cơ chế tự động Abort và cô lập lỗi của Argo Rollouts:**
   * *Vấn đề:* Phiên bản v2 mang mã lỗi (30% lỗi HTTP 500) được deploy. Ta cần xác nhận hệ thống tự bảo vệ như thế nào.
@@ -333,24 +332,15 @@ Dưới đây là tiến độ thực hiện thực tế và các câu lệnh đ
   # THỬ NGHIỆM 1: Tạo pod chạy curl loop từ image busyboxplus
   kubectl run traffic-generator -n demo --image=radial/busyboxplus:curl --restart=Never -- sh -c "while true; do curl -s http://taixiu-backend.demo.svc.cluster.local:5000/api/state > /dev/null; sleep 0.1; done"
   
-  # Kiểm tra trạng thái pods
-  kubectl get pods -n demo
   # Phát hiện lỗi: Pod traffic-generator rơi vào trạng thái ErrImagePull/ImagePullBackOff do không kéo được image ngoại mạng.
-  
-  # THỬ NGHIỆM 2: Tận dụng pod web có sẵn trong namespace demo
-  # Kiểm tra xem pod web có lệnh wget không
-  kubectl exec -n demo web-799ccccbd9-j9tsk -- wget -qO- http://taixiu-backend:5000/api/state
-  # Trả về lỗi: wget not found
-  
-  # Kiểm tra xem pod web có lệnh curl không
-  kubectl exec -n demo web-799ccccbd9-j9tsk -- curl -s http://taixiu-backend:5000/api/state
-  # Trả về: {"balance":1000000,"history":[]} -> Thành công! Pod web có curl!
-  
-  # GIẢI PHÁP THỰC TẾ: Khởi chạy luồng tạo traffic ngầm bên trong container web thông qua dns nội bộ
-  kubectl exec -n demo web-799ccccbd9-j9tsk -- sh -c "while true; do curl -s http://taixiu-backend:5000/api/state > /dev/null; sleep 0.05; done" &
-  
-  # Xóa dọn dẹp pod traffic-generator bị lỗi Image
   kubectl delete pod traffic-generator -n demo
+  
+  # GIẢI PHÁP THỰC TẾ: Khởi tạo Pod traffic-generator sử dụng image nginx:1.27 (đã có sẵn trong cache cục bộ và chứa sẵn curl):
+  kubectl run traffic-generator -n demo --image=nginx:1.27 --restart=Never -- sh -c "while true; do curl -s http://taixiu-backend:5000/api/state > /dev/null; sleep 0.1; done"
+  
+  # Kiểm tra trạng thái Pod hoạt động ổn định:
+  kubectl get pod traffic-generator -n demo
+  # Kết quả: traffic-generator   1/1   Running   0   10s
   ```
 
 * **4. Inject Lỗi và Đẩy Code v2 lên Git:**
@@ -583,7 +573,7 @@ Cấu hình giao thức SMTP gửi thư đến email cá nhân của bạn. Kỹ
     ```
   * Đo đạc thực tế của lần test:
     * **Lần đo 1:** Trả về `Value: [0]` (0% lỗi) -> Thành công.
-    * **Lần đo 2 (giây thứ 30):** Do lưu lượng traffic liên tục từ container `web` gửi vào backend lỗi v2, Prometheus thu thập tỉ lệ lỗi thực tế đạt **9.84%** (vượt xa ngưỡng an toàn $<5\%$) -> Thất bại.
+    * **Lần đo 2 (giây thứ 30):** Do lưu lượng traffic liên tục từ Pod `traffic-generator` gửi vào backend lỗi v2, Prometheus thu thập tỉ lệ lỗi thực tế đạt **9.84%** (vượt xa ngưỡng an toàn $<5\%$) -> Thất bại.
   * Ngay khi lần đo 2 thất bại, Argo Rollouts Controller tự động kích hoạt cơ chế tự phục hồi:
     * Trạng thái Rollout chuyển sang `Aborted` và Phase chuyển sang `Degraded`.
     * ReplicaSet lỗi `v2` bị scale down từ **1 pod về 0 pod** ngay lập tức để ngắt lỗi.
