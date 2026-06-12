@@ -14,6 +14,6 @@ spec:
       prometheus:
         address: http://prometheus-service.monitoring.svc.cluster.local:9090
         query: |
-          (sum(rate(http_requests_total{status=~"5..", kubernetes_namespace="demo"}[2m])) or vector(0))
+          (sum(rate(http_requests_total{status=~"5..", kubernetes_namespace="demo", app="taixiu-backend-rollout"}[2m])) or vector(0))
           /
-          (sum(rate(http_requests_total{kubernetes_namespace="demo"}[2m])) or vector(1))
+          (sum(rate(http_requests_total{kubernetes_namespace="demo", app="taixiu-backend-rollout"}[2m])) or vector(1))

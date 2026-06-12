@@ -1,24 +1,24 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: taixiu-backend
+  name: taixiu-backend-rollout
   namespace: demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: taixiu-backend
+      app: taixiu-backend-rollout
   template:
     metadata:
       labels:
-        app: taixiu-backend
+        app: taixiu-backend-rollout
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "5000"
         prometheus.io/path: "/metrics"
     spec:
       containers:
-      - name: taixiu-backend
+      - name: taixiu-backend-rollout
         image: taixiu-backend:latest
         imagePullPolicy: IfNotPresent
         ports:
