@@ -45,6 +45,21 @@ flowchart TD
 
 ---
 
+## 📂 DANH SÁCH APPLICATION TRÊN ARGOCD & VAI TRÒ HỆ THỐNG
+
+Để quản lý toàn bộ vòng đời sản phẩm theo mô hình GitOps App-of-Apps, cụm Kubernetes được cấu trúc thành các Application ArgoCD cụ thể như sau:
+
+| Tên Application | Namespace Đích | Đường dẫn Git (Path) | Vai trò trong hệ thống |
+| :--- | :--- | :--- | :--- |
+| **`root`** | `argocd` | `gitops/argocd/apps/` | **Root Application (App-of-Apps):** Quản lý, giám sát và tự động đồng bộ hóa tất cả các ứng dụng con khi có cấu hình mới được thêm trên Git. |
+| **`argo-rollouts`** | `argo-rollouts` | `gitops/argo-rollouts/` | **Argo Rollouts Controller:** Triển khai bộ điều khiển controller và các CRD (`Rollout`, `AnalysisTemplate`) để chạy cơ chế deploy Canary tự động. |
+| **`prometheus-stack`** | `monitoring` | `gitops/monitoring/` | **Monitoring Stack (Giám sát & Cảnh báo):** Triển khai Prometheus Server, Alertmanager (gửi email SMTP cảnh báo SLO) và Grafana (dashboard tự động nạp). |
+| **`taixiu-backend`** | `demo` | `gitops/taixiu/backend/k8s/` | **Game Backend Service:** Chạy code Node.js xử lý logic game dưới dạng Rollout, tích hợp sẵn AnalysisTemplate để tự động phân tích độ ổn định. |
+| **`taixiu-frontend`** | `demo` | `gitops/taixiu/frontend/k8s/` | **Game Frontend Service:** Giao diện người chơi của game Tài Xỉu Premium. |
+| **`web`** | `demo` | `gitops/web/` | **Demo Web Service:** Ứng dụng Nginx từ bài Lab cơ bản phục vụ việc làm quen và kiểm thử ban đầu. |
+
+---
+
 ## 📝 NHẬT KÝ THỰC HIỆN (ĐANG TRONG TIẾN TRÌNH)
 
 Dưới đây là tiến độ thực hiện thực tế và các câu lệnh đã chạy:
