@@ -544,17 +544,17 @@ Cấu hình giao thức SMTP gửi thư đến email cá nhân của bạn. Kỹ
     ```
 
 * **Bước 4.3: Kích hoạt triển khai phiên bản lỗi (v2)**
-  * Sửa đổi file `gitops/taixiu/backend/k8s/rollout.yaml` để nâng cấp image từ `taixiu-backend:latest` lên `taixiu-backend:v2` (phiên bản backend được inject 30% lỗi HTTP 500 ngẫu nhiên).
+  * Sửa đổi file `gitops/taixiu/backend-rollout/k8s/rollout.yaml` để nâng cấp image từ `taixiu-backend:latest` lên `taixiu-backend:v2` (phiên bản backend được inject 30% lỗi HTTP 500 ngẫu nhiên).
   * Commit và push thay đổi lên GitHub:
     ```bash
-    git add gitops/taixiu/backend/k8s/rollout.yaml
-    git commit -m "Deploy taixiu-backend v2 to verify email notification delivery"
+    git add gitops/taixiu/backend-rollout/k8s/rollout.yaml
+    git commit -m "Deploy taixiu-backend-rollout v2 to verify email notification delivery"
     git push origin main
     ```
-  * Sử dụng patch JSON để ép ứng dụng `taixiu-backend` đồng bộ trên ArgoCD:
+  * Sử dụng patch JSON để ép ứng dụng `taixiu-backend-rollout` đồng bộ trên ArgoCD:
     ```bash
     kubectl -n argocd patch app root --type=merge --patch-file temp-patch-sync.json
-    kubectl -n argocd patch app taixiu-backend --type=merge --patch-file temp-patch-sync.json
+    kubectl -n argocd patch app taixiu-backend-rollout --type=merge --patch-file temp-patch-sync.json
     ```
 
 * **Bước 4.4: Theo dõi quá trình tự động Rollback & Kích hoạt Alert**
@@ -586,11 +586,11 @@ Cấu hình giao thức SMTP gửi thư đến email cá nhân của bạn. Kỹ
   * Kiểm tra hòm thư của bạn (`quochungisme@gmail.com`) để xác nhận email cảnh báo đã được gửi thành công từ hệ thống. Log của Alertmanager hoàn toàn sạch lỗi, chứng minh luồng SMTP đã xác thực và gửi thư thành công.
 
 * **Bước 4.6: Khôi phục trạng thái sạch cho Rollout trên Git (GitOps Alignment)**
-  * Để khôi phục hệ thống về trạng thái sạch sẽ ổn định trên Git, sửa file `rollout.yaml` đưa image trở lại bản `taixiu-backend:latest` (bản v1 ổn định).
+  * Để khôi phục hệ thống về trạng thái sạch sẽ ổn định trên Git, sửa file `gitops/taixiu/backend-rollout/k8s/rollout.yaml` đưa image trở lại bản `taixiu-backend:latest` (bản v1 ổn định).
   * Thực hiện commit, push và đồng bộ:
     ```bash
-    git add gitops/taixiu/backend/k8s/rollout.yaml
-    git commit -m "Rollback taixiu-backend image to latest stable version"
+    git add gitops/taixiu/backend-rollout/k8s/rollout.yaml
+    git commit -m "Rollback taixiu-backend-rollout image to latest stable version"
     git push origin main
     ```
   * Đồng bộ qua ArgoCD để Rollout tự động nhận diện bản ổn định và quay lại trạng thái `Healthy/Completed` thành công chỉ trong **1 giây** nhờ cơ chế `SkipSteps`.
@@ -600,49 +600,49 @@ Cấu hình giao thức SMTP gửi thư đến email cá nhân của bạn. Kỹ
   * **Các bước triển khai chi tiết:**
     1. Khởi chạy Pod tạo traffic nội bộ bằng cached image `nginx:1.27` có sẵn `curl`:
        ```bash
-       kubectl run traffic-generator -n demo --image=nginx:1.27 --restart=Never -- sh -c "while true; do curl -s http://taixiu-backend:5000/api/state; sleep 0.1; done"
+       kubectl run traffic-generator -n demo --image=nginx:1.27 --restart=Never -- sh -c "while true; do curl -s http://taixiu-backend-rollout:5000/api/state; sleep 0.1; done"
        ```
     2. Kiểm tra trạng thái Pod traffic-generator hoạt động ổn định:
        ```bash
        kubectl get pod traffic-generator -n demo
        # Trả về: traffic-generator   1/1   Running   0   37s
        ```
-    3. Cập nhật file `rollout.yaml` để sync bản ổn định `latest` trước:
+    3. Cập nhật file `gitops/taixiu/backend-rollout/k8s/rollout.yaml` để sync bản ổn định `latest` trước:
        ```yaml
-             - name: taixiu-backend
+             - name: taixiu-backend-rollout
                image: taixiu-backend:latest
        ```
     4. Thực hiện commit, push và đồng bộ bằng file patch:
        ```bash
-       git add gitops/taixiu/backend/k8s/rollout.yaml
+       git add gitops/taixiu/backend-rollout/k8s/rollout.yaml
        git commit -m "Deploy latest version to reset rollout state"
        git push origin main
        
        # Nội dung file temp-patch-sync.json: {"operation":{"sync":{"prune":true,"syncStrategy":{"hook":{}}}}}
        kubectl -n argocd patch app root --type=merge --patch-file temp-patch-sync.json
-       kubectl -n argocd patch app taixiu-backend --type=merge --patch-file temp-patch-sync.json
+       kubectl -n argocd patch app taixiu-backend-rollout --type=merge --patch-file temp-patch-sync.json
        Remove-Item temp-patch-sync.json
        ```
-    5. Cập nhật file `rollout.yaml` để nâng cấp lên bản lỗi `v2`:
+    5. Cập nhật file `gitops/taixiu/backend-rollout/k8s/rollout.yaml` để nâng cấp lên bản lỗi `v2`:
        ```yaml
-             - name: taixiu-backend
+             - name: taixiu-backend-rollout
                image: taixiu-backend:v2
        ```
     6. Thực hiện commit, push và đồng bộ bản `v2`:
        ```bash
-       git add gitops/taixiu/backend/k8s/rollout.yaml
+       git add gitops/taixiu/backend-rollout/k8s/rollout.yaml
        git commit -m "Deploy v2 with active in-cluster traffic generator to trigger automatic rollback"
        git push origin main
        
        # Áp dụng sync patch
        kubectl -n argocd patch app root --type=merge --patch-file temp-patch-sync.json
-       kubectl -n argocd patch app taixiu-backend --type=merge --patch-file temp-patch-sync.json
+       kubectl -n argocd patch app taixiu-backend-rollout --type=merge --patch-file temp-patch-sync.json
        Remove-Item temp-patch-sync.json
        ```
     7. Theo dõi các AnalysisRun được sinh ra và quá trình tự động abort:
        ```bash
        kubectl get analysisrun -n demo
-       kubectl describe analysisrun taixiu-backend-7fd6bb6498-12-2 -n demo
+       kubectl describe analysisrun taixiu-backend-rollout-7fd6bb6498-12-2 -n demo
        ```
        - **Kết quả đo đạc thực tế:**
          * Lần đo 1 (0s): `Value: [0]` (0% lỗi) -> Thành công.
@@ -651,12 +651,12 @@ Cấu hình giao thức SMTP gửi thư đến email cá nhân của bạn. Kỹ
          * AnalysisRun lập tức kết thúc với trạng thái `Failed`.
     8. Kiểm tra trạng thái Rollout để xác minh tự động rollback về bản v1:
        ```bash
-       kubectl describe rollout taixiu-backend -n demo
+       kubectl describe rollout taixiu-backend-rollout -n demo
        ```
        - **Kết quả:** Rollout nhận thấy phân tích lỗi, lập tức kích hoạt `RolloutAborted`, scale down v2 về 0 pod, giữ nguyên 100% traffic về bản v1 ổn định.
     9. Kiểm tra sức khỏe của ứng dụng trên ArgoCD:
        ```bash
-       kubectl get app taixiu-backend -n argocd -o jsonpath="{.status.health.status}"
+       kubectl get app taixiu-backend-rollout -n argocd -o jsonpath="{.status.health.status}"
        # Trả về: Degraded (Đúng thiết kế khi rollout bị abort và rollback)
        ```
     10. Khôi phục trạng thái Healthy trên ArgoCD bằng Git Revert:
