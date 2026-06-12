@@ -101,6 +101,55 @@ data:
           summary: "SLO bị vi phạm trên Backend API"
           description: "Tỷ lệ lỗi HTTP 5xx trên backend đã vượt quá 5% (Hiện tại: {{ $value }}) trong 2 phút qua."
 
+    - name: alertmanager-system-alerts
+      rules:
+      - alert: AlertmanagerFailedReload
+        expr: alertmanager_config_last_reload_successful == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alertmanager configuration reload failed"
+      - alert: AlertmanagerMembersInconsistent
+        expr: alertmanager_cluster_members > 1 and alertmanager_cluster_members != alertmanager_cluster_peers
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alertmanager cluster members inconsistent"
+      - alert: AlertmanagerFailedToSendAlerts
+        expr: rate(alertmanager_notifications_failed_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alertmanager failed to send alerts"
+
+    - name: etcd-system-alerts
+      rules:
+      - alert: etcdMembersDown
+        expr: max by(job) (etcd_server_has_leader) == 0
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: "etcd members down"
+      - alert: etcdInsufficientMembers
+        expr: count(etcd_server_has_leader) < 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "etcd insufficient members"
+      - alert: etcdNoLeader
+        expr: etcd_server_has_leader == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "etcd has no leader"
+
+
 ---
 apiVersion: apps/v1
 kind: Deployment
